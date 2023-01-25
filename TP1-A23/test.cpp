@@ -63,19 +63,19 @@ void strassen(int** matrixA, int** matrixB, int** res, int length){
         int** m6 = new int*[k];
         int** m7 = new int*[k];
         int** r1 = new int*[k];
-        int** r2 = new int*[k];
-        int** r5 = new int*[k];
-        int** r6 = new int*[k];
-        int** r7 = new int*[k];
-        int** r8 = new int*[k];
-        int** r9 = new int*[k];
+        // int** r2 = new int*[k];
+        // int** r5 = new int*[k];
+        // int** r6 = new int*[k];
+        // int** r7 = new int*[k];
+        // int** r8 = new int*[k];
+        // int** r9 = new int*[k];
         int** l1 = new int*[k];
-        int** l3 = new int*[k];
-        int** l4 = new int*[k];
-        int** l6 = new int*[k];
-        int** l7 = new int*[k];
-        int** l8 = new int*[k];
-        int** l9 = new int*[k];
+        // int** l3 = new int*[k];
+        // int** l4 = new int*[k];
+        // int** l6 = new int*[k];
+        // int** l7 = new int*[k];
+        // int** l8 = new int*[k];
+        // int** l9 = new int*[k];
         for (int j = 0; j < k; ++j){
             c11[j] = new int[k];
             c12[j] = new int[k];
@@ -97,19 +97,19 @@ void strassen(int** matrixA, int** matrixB, int** res, int length){
             m6[j] = new int[k];
             m7[j] = new int[k];
             r1[j] = new int[k];
-            r2[j] = new int[k];
-            r5[j] = new int[k];
-            r6[j] = new int[k];
-            r7[j] = new int[k];
-            r8[j] = new int[k];
-            r9[j] = new int[k];
+            // r2[j] = new int[k];
+            // r5[j] = new int[k];
+            // r6[j] = new int[k];
+            // r7[j] = new int[k];
+            // r8[j] = new int[k];
+            // r9[j] = new int[k];
             l1[j] = new int[k];
-            l3[j] = new int[k];
-            l4[j] = new int[k];
-            l6[j] = new int[k];
-            l7[j] = new int[k];
-            l8[j] = new int[k];
-            l9[j] = new int[k];
+            // l3[j] = new int[k];
+            // l4[j] = new int[k];
+            // l6[j] = new int[k];
+            // l7[j] = new int[k];
+            // l8[j] = new int[k];
+            // l9[j] = new int[k];
         }
         for (int i=0; i<length; i++){
             for (int j=0; j<length; j++){
@@ -136,37 +136,37 @@ void strassen(int** matrixA, int** matrixB, int** res, int length){
         add(matrixB11,matrixB22,l1,k);
         strassen(r1,l1,m1,k);
         // m2
-        add(matrixA21,matrixA22,r2,k);
-        strassen(r2,matrixB11,m2,k);
+        add(matrixA21,matrixA22,r1,k);
+        strassen(r1,matrixB11,m2,k);
         // m3
-        sub(matrixB12,matrixB22,l3,k);
-        strassen(matrixA11,l3,m3,k);
+        sub(matrixB12,matrixB22,l1,k);
+        strassen(matrixA11,l1,m3,k);
         // m4
-        sub(matrixB21,matrixB11,l4,k);
-        strassen(matrixA22,l4,m4,k);
+        sub(matrixB21,matrixB11,l1,k);
+        strassen(matrixA22,l1,m4,k);
         // m5
-        add(matrixA11,matrixA12,r5,k);
-        strassen(r5,matrixB22,m5,k);
+        add(matrixA11,matrixA12,r1,k);
+        strassen(r1,matrixB22,m5,k);
         // m6
-        sub(matrixA21,matrixA11,r6,k);
-        add(matrixB11,matrixB12,l6,k);
-        strassen(r6,l6,m6,k);
+        sub(matrixA21,matrixA11,r1,k);
+        add(matrixB11,matrixB12,l1,k);
+        strassen(r1,l1,m6,k);
         //m7
-        sub(matrixA12,matrixA22,r7,k);
-        add(matrixB21,matrixB22,l7,k);
-        strassen(r7,l7,m7,k);
+        sub(matrixA12,matrixA22,r1,k);
+        add(matrixB21,matrixB22,l1,k);
+        strassen(r1,l1,m7,k);
         // c11
-        add(m1,m4,r8,k);
-        sub(r8,m5,l8,k);
-        add(l8,m7,c11,k);
+        add(m1,m4,r1,k);
+        sub(r1,m5,l1,k);
+        add(l1,m7,c11,k);
         //c12
         add(m3,m5,c12,k);
         //c21
         add(m2,m4,c21,k);
         //c22
-        add(m1,m3,r9,k);
-        add(r9,m6,l9,k);
-        sub(l9,m2,c22,k);
+        add(m1,m3,r1,k);
+        add(r1,m6,l1,k);
+        sub(l1,m2,c22,k);
 
         for (int i=0; i<length; i++){
             for (int j=0; j<length; j++){
@@ -205,19 +205,19 @@ void strassen(int** matrixA, int** matrixB, int** res, int length){
             delete m6[j];
             delete m7[j];
             delete r1[j];
-            delete r2[j];
-            delete r5[j];
-            delete r6[j];
-            delete r7[j];
-            delete r8[j];
-            delete r9[j];
+            // delete r2[j];
+            // delete r5[j];
+            // delete r6[j];
+            // delete r7[j];
+            // delete r8[j];
+            // delete r9[j];
             delete l1[j];
-            delete l3[j];
-            delete l4[j];
-            delete l6[j];
-            delete l7[j];
-            delete l8[j];
-            delete l9[j];
+            // delete l3[j];
+            // delete l4[j];
+            // delete l6[j];
+            // delete l7[j];
+            // delete l8[j];
+            // delete l9[j];
         }
         delete c11;
         delete c12;
@@ -239,22 +239,21 @@ void strassen(int** matrixA, int** matrixB, int** res, int length){
         delete m6;
         delete m7;
         delete r1;
-        delete r2;
-        delete r5;
-        delete r6;
-        delete r7;
-        delete r8;
-        delete r9;
+        // delete r2;
+        // delete r5;
+        // delete r6;
+        // delete r7;
+        // delete r8;
+        // delete r9;
         delete l1;
-        delete l3;
-        delete l4;
-        delete l6;
-        delete l7;
-        delete l8;
-        delete l9;
+        // delete l3;
+        // delete l4;
+        // delete l6;
+        // delete l7;
+        // delete l8;
+        // delete l9;
     }
 }
-
 void strassenSeuil(int** matrixA, int** matrixB, int** res, int length){
     if (length <= 256){
         conv(matrixA,matrixB,res,length);
