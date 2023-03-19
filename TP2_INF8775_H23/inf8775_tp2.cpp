@@ -97,6 +97,7 @@ void glouton(int** matrix, int* res, int length) {
     delete distanceMatrix;
 }
 
+
 /* || Methods for dynamic programmation || */
 // Method to fill array for dynamic programation using the binary mask to represent the set of cities S
 int tsp(int** distanceMatrix, int** memo, int currentCity, int length, int mask){

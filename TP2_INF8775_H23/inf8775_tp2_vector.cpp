@@ -5,7 +5,7 @@
 #include <algorithm>
 #include <cmath>
 #include <vector>
-
+#include <cstdlib>
 
 using namespace std;
 using Algo = const function<void(vector<vector<int>>, vector<int>&)>&;
@@ -14,8 +14,8 @@ const int INF = 1e9;
 
 // Useful method
 // Return initial city
-int initialCity(){
-    return 0;
+int initialCity(int nbCities){
+    return std::rand()%nbCities;
 }
 
 // Calcul eucliedean distance between 2 points rounded to the nearest integer.
@@ -49,7 +49,7 @@ void glouton(vector<vector<int>> distanceMatrix, vector<int>& res) {
     vector<bool> visitedCites(length);
 
     // Select an arbitrary city
-    int currentCity = initialCity();
+    int currentCity = initialCity(length);
     visitedCites[currentCity] = true;
     int nbUnvisitedCities = length - 1;
     res[0] = currentCity;
@@ -139,7 +139,7 @@ void progdyn(vector<vector<int>> distanceMatrix, vector<int>& res) {
     vector<vector<int>> memo(length,vector<int>(1<<length,-1));
 
     // Select an arbitrary city
-    int firstCity = initialCity();
+    int firstCity = 0;
     res[0] = firstCity;
     res[length] = firstCity;
 
@@ -212,7 +212,7 @@ void approx(vector<vector<int>> distanceMatrix, vector<int>& res) {
     visitedCites[0] = true;
 
     // Select an arbitrary city
-    int firstCity = initialCity();
+    int firstCity = initialCity(length);
 
     // Tree
     vector<pair<int,int>> tree;
@@ -221,6 +221,7 @@ void approx(vector<vector<int>> distanceMatrix, vector<int>& res) {
     // Fill res with path obtained by preorder traversal of Prim's tree
     int index = 0;
     preorderTraversal(firstCity, tree, visitedCites, res, index);
+    res[length] = firstCity;
     
     // ---- Delete before finish --- //
     int distanceTotal = 0 ;
@@ -229,6 +230,32 @@ void approx(vector<vector<int>> distanceMatrix, vector<int>& res) {
     }
     std::cout << "DistanceTotal " << distanceTotal << std::endl;
     // ---- Delete before finish --- //
+    
+}
+
+int positiveModulo(int a, int b){
+    return ((a  % b + b) % b);
+}
+
+void printPath(vector<int> &res){
+    int length = res.size()-1;
+    bool finded = false;
+    int indix = 0;
+
+    while (res[indix] != 0){
+        indix += 1;
+    }
+
+    std::cout << 0 << "\n";
+    if (res[indix+1] > res[positiveModulo(indix-1, length)]){
+        for (int i=0; i<length; i++){
+            std::cout << res[positiveModulo(indix+1+i, length)] << "\n";
+        }
+    } else {
+        for (int i=0; i<length; i++){
+            std::cout << res[positiveModulo(indix-1-i, length)] << "\n";
+        }
+    }
     
 }
 
@@ -244,9 +271,7 @@ void run(Algo algo, vector<vector<int>> matrix, vector<int> &res, bool print_res
         std::cout << std::fixed << s.count() << std::endl;
     }
     if (print_res) {
-        for (int i=0; i <= length; i++){
-            std::cout << res[i] << "\n";    
-        }
+        printPath(res);
     }
 }
 
