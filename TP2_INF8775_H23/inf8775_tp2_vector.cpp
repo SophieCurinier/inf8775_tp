@@ -8,7 +8,7 @@
 #include <cstdlib>
 
 using namespace std;
-using Algo = const function<void(vector<vector<int>>, vector<int>&)>&;
+using Algo = const function<void(vector<vector<int>>&, vector<int>&)>&;
 
 const int INF = 1e9;
 
@@ -24,7 +24,7 @@ int euclideanDistance(int x1, int y1, int x2, int y2){
 }
 
 // Fill distanceMatrix with euclidean distances between cities.
-void initializeDistancMatrix(vector<vector<int>> matrix, vector<vector<int>>& distanceMatrix){
+void initializeDistancMatrix(vector<vector<int>>& matrix, vector<vector<int>>& distanceMatrix){
     int length = matrix.size();
     int distanceBetweenIAndJ ;
     for (int i=0; i<length; i++){
@@ -42,7 +42,7 @@ void initializeDistancMatrix(vector<vector<int>> matrix, vector<vector<int>>& di
 
 
 /* || Method for glouton || */
-void glouton(vector<vector<int>> distanceMatrix, vector<int>& res) {
+void glouton(vector<vector<int>>& distanceMatrix, vector<int>& res) {
     int totalDist = 0;
     int length = distanceMatrix.size();
     // Initialized all city as unvisited
@@ -55,9 +55,10 @@ void glouton(vector<vector<int>> distanceMatrix, vector<int>& res) {
     res[0] = currentCity;
 
     // Find out the shortest edge connecting the current city and an unvisited city
+    int nearestUnvisitedCity = -1;
+    int distanceWithNearest;
     while (nbUnvisitedCities > 0){
-        int nearestUnvisitedCity = -1;
-        int distanceWithNearest;
+        nearestUnvisitedCity = -1;
         for (int i=0; i<length; i++){
             if (!visitedCites[i]){
                 int distanceWithI = distanceMatrix[currentCity][i];
@@ -80,15 +81,11 @@ void glouton(vector<vector<int>> distanceMatrix, vector<int>& res) {
     }
     totalDist += distanceMatrix[0][res[length-1]];
 
-    // Delete before sending
-    std::cout << totalDist << std::endl;
-
     res[length] = res[0];
-
 }
 /* || Methods for dynamic programmation || */
 // Method to fill array for dynamic programation using the binary mask to represent the set of cities S
-int tsp(vector<vector<int>> distanceMatrix, vector<vector<int>>& memo, int currentCity, int length, int mask){
+int tsp(vector<vector<int>>& distanceMatrix, vector<vector<int>>& memo, int currentCity, int length, int mask){
     // If mask is equal 2^length, so S is empty
     // Hovewer, if S is empty, then all cities have been visited. 
     if (mask == (1<<length)-1){ 
@@ -114,7 +111,7 @@ int tsp(vector<vector<int>> distanceMatrix, vector<vector<int>>& memo, int curre
 }
 
 // Get TSP path using array for dynamic programmation
-void getTspPath(vector<vector<int>> distanceMatrix, vector<vector<int>> memo, int length, vector<int>& path, int mask, int pos, int len) {
+void getTspPath(vector<vector<int>>& distanceMatrix, vector<vector<int>>& memo, int length, vector<int>& path, int mask, int pos, int len) {
     // If S is empty
     if (mask == (1 << length) - 1) {
         path[length-1-len] = 0;
@@ -133,7 +130,7 @@ void getTspPath(vector<vector<int>> distanceMatrix, vector<vector<int>> memo, in
     }
 }
 
-void progdyn(vector<vector<int>> distanceMatrix, vector<int>& res) {
+void progdyn(vector<vector<int>>& distanceMatrix, vector<int>& res) {
     int length = distanceMatrix.size();
     // Initialize memo array
     vector<vector<int>> memo(length,vector<int>(1<<length,-1));
@@ -143,10 +140,7 @@ void progdyn(vector<vector<int>> distanceMatrix, vector<int>& res) {
     res[0] = firstCity;
     res[length] = firstCity;
 
-    // ---- Delete before finish --- //
     int distanceTotal = tsp(distanceMatrix, memo, firstCity, length, 1);
-    std::cout << "DistanceTotal " << distanceTotal << std::endl;
-    // ---- Delete before finish --- //
 
     // Fill res with path
     getTspPath(distanceMatrix, memo, length, res, 1, 0, 0);
@@ -156,7 +150,7 @@ void progdyn(vector<vector<int>> distanceMatrix, vector<int>& res) {
 
 /* || Methods for dynamic programmation || */
 // Implementation of Prim Algorith
-void prim(vector<vector<int>> distanceMatirx, vector<pair<int,int>>& T ){
+void prim(vector<vector<int>>& distanceMatirx, vector<pair<int,int>>& T ){
     int length = distanceMatirx.size();
     // Intialize neighboor and distMin array
     vector<int> neighboor(length);
@@ -205,7 +199,7 @@ void preorderTraversal(int u, vector<pair<int, int>>& T, vector<bool>& visited, 
 }
 
 // Using Prim Algo
-void approx(vector<vector<int>> distanceMatrix, vector<int>& res) {
+void approx(vector<vector<int>>& distanceMatrix, vector<int>& res) {
     int length = distanceMatrix.size();
     // Initialize citiesvisited array
     vector<bool> visitedCites(length,false);
@@ -222,15 +216,6 @@ void approx(vector<vector<int>> distanceMatrix, vector<int>& res) {
     int index = 0;
     preorderTraversal(firstCity, tree, visitedCites, res, index);
     res[length] = firstCity;
-    
-    // ---- Delete before finish --- //
-    int distanceTotal = 0 ;
-    for (int i=0; i<length; i++){
-        distanceTotal += distanceMatrix[res[i]][res[i+1]];
-    }
-    std::cout << "DistanceTotal " << distanceTotal << std::endl;
-    // ---- Delete before finish --- //
-    
 }
 
 int positiveModulo(int a, int b){
@@ -259,7 +244,7 @@ void printPath(vector<int> &res){
     
 }
 
-void run(Algo algo, vector<vector<int>> matrix, vector<int> &res, bool print_res, bool print_time) {
+void run(Algo algo, vector<vector<int>>& matrix, vector<int> &res, bool print_res, bool print_time) {
     using namespace chrono;
     int length = matrix.size();
     auto start = steady_clock::now();
