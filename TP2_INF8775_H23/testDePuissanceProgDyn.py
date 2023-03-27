@@ -10,14 +10,16 @@ g = sns.lmplot(data=df, x='taille', y='temps',col='algo',ci=None,aspect=1,height
 g.set(xscale='log')
 g.set(yscale='log')
 
-for ax, algo in zip(g.axes.flat, ['approx1','approx2']):
-    if (algo == 'approx1'):
+for ax, algo in zip(g.axes.flat, ['progdyn1','progdyn2']):
+    if (algo == 'progdyn1'):
         ax.set_title("avec matrices de distance")
-        ax.plot([1000,50000],[0.0240294,62.0883816])
-    elif (algo == 'approx2'):
+        # ax.plot([5,25],[0.000007141844418,27.4225493])
+        # ax.text(10,0.0000036,"R2 = 0.936")
+    elif (algo == 'progdyn2'):
         ax.set_title("sans matrice de distances")
-        ax.plot([1000, 50000],[0.0412714,104.8301636])
+        # ax.text(10,0.0000036,"R2 = 0.957")
+        # ax.plot([5, 25],[0.000001423712749,13.24809145])
 
-g.fig.suptitle('Test de puissance - Approximatif')
+g.fig.suptitle('Test de puissance - Programmation dynamique')
 
-plt.savefig('test_puissance_approx') 
+plt.savefig('test_puissance_progdyn') 

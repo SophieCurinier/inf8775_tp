@@ -8,8 +8,8 @@ import math
 df = pd.read_csv(sys.argv[1]).groupby(['algo','taille','serie']).mean().reset_index()
 
 for i in range((int)(df.size/4)):
-    if ((df.loc[i]['algo'] == 'approx1') or (df.loc[i]['algo'] == 'approx2')):
-        df.at[i,'f(n)'] = df.loc[i]['taille']**2*math.log(df.loc[i]['taille'])
+    if ((df.loc[i]['algo'] == 'progdyn1') or (df.loc[i]['algo'] == 'progdyn2')):
+        df.at[i,'f(n)'] = (df.loc[i]['taille']**2)*(2**df.loc[i]['taille'])
 
 g = sns.lmplot(data=df, x='f(n)', y='temps', col='algo', ci=None,robust=True)
 
@@ -20,11 +20,11 @@ def annotate(data, **kws):
             transform=ax.transAxes)
 
 g.map_dataframe(annotate)
-for ax, algo in zip(g.axes.flat, ['approx1','approx2']):
-    if (algo == 'approx1'):
+for ax, algo in zip(g.axes.flat, ['progdyn1','progdyn2']):
+    if (algo == 'progdyn1'):
         ax.set_title("avec matrices de distance")
-    elif (algo == 'approx2'):
+    elif (algo == 'progdyn2'):
         ax.set_title("sans matrice de distances")
 
-g.fig.suptitle('Test des constantes - Approximatif')
-plt.savefig('test_constante_approx')
+g.fig.suptitle('Test des constantes - Programmation dynamique')
+plt.savefig('test_constante_progdyn')
