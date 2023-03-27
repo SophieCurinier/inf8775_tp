@@ -34,7 +34,7 @@ void initializeDistancMatrix(vector<vector<int>>& matrix, vector<vector<int>>& d
             } else {
                 distanceBetweenIAndJ = euclideanDistance(matrix[i][0],matrix[i][1],matrix[j][0],matrix[j][1]);
                 distanceMatrix[i][j] = distanceBetweenIAndJ;
-                distanceMatrix[j][i] = distanceBetweenIAndJ;
+                distanceMatrix[j][j] = distanceBetweenIAndJ;
             } 
         }   
     }

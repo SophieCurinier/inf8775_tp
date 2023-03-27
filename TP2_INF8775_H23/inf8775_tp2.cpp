@@ -14,8 +14,8 @@ const int INF = 1e9;
 
 // Useful method
 // Return initial city
-int initialCity(){
-    return 0;
+int initialCity(int nbCities){
+    return std::rand()%nbCities;
 }
 
 // Calcul eucliedean distance between 2 points rounded to the nearest integer.
@@ -27,27 +27,40 @@ int euclideanDistance(int x1, int y1, int x2, int y2){
 void initializeDistancMatrix(int**& matrix, int**& distanceMatrix, int length){
     int distanceBetweenIAndJ ;
     for (int i=0; i<length; i++){
-        for (int j=0; j<length; j++){
+        for (int j=i; j<length; j++){
             if (i == j){
                 distanceMatrix[i][j] == 0;
             } else {
                 distanceBetweenIAndJ = euclideanDistance(matrix[i][0],matrix[i][1],matrix[j][0],matrix[j][1]);
-                distanceMatrix[i][j] = distanceBetweenIAndJ;
-                distanceMatrix[j][j] = distanceBetweenIAndJ;
+                distanceMatrix[i][j-i] = distanceBetweenIAndJ;
             } 
         }   
     }
+}
+
+// Get distance between i and j in distanceMatrix
+int getDistanceBetweenIAndJ(int**& matrix, int i, int j)
+{
+    int distanceBetweenIAndJ = 0;
+    if (i < j){
+        distanceBetweenIAndJ = matrix[i][j-i];
+    } else if (i > j)
+    {
+        distanceBetweenIAndJ = matrix[j][i-j];   
+    }
+    return distanceBetweenIAndJ;
 }
 
 
 /* || Method for glouton || */
 void glouton(int**& matrix, int*& res, int length) {
     int totalDist = 0;
+
     // Initialized all city as unvisited
     bool * visitedCites = new bool[length];
 
     // Select an arbitrary city
-    int currentCity = initialCity();
+    int currentCity = initialCity(length);
     visitedCites[currentCity] = true;
     int nbUnvisitedCities = length - 1;
     res[0] = currentCity;
@@ -55,7 +68,7 @@ void glouton(int**& matrix, int*& res, int length) {
     // Calcul and intialize matrix distance
     int **distanceMatrix = new int*[length];
     for (int i = 0; i<length; i++){
-        distanceMatrix[i] = new int[length];
+        distanceMatrix[i] = new int[length-i];
     }
     initializeDistancMatrix(matrix, distanceMatrix, length);
 
@@ -66,7 +79,8 @@ void glouton(int**& matrix, int*& res, int length) {
         nearestUnvisitedCity = -1;
         for (int i=0; i<length; i++){
             if (!visitedCites[i]){
-                int distanceWithI = distanceMatrix[currentCity][i];
+                // int distanceWithI = distanceMatrix[currentCity][i];
+                int distanceWithI = getDistanceBetweenIAndJ(distanceMatrix, i, currentCity);
                 if (nearestUnvisitedCity >= 0){
                     if (distanceWithNearest > distanceWithI){
                         nearestUnvisitedCity = i;
@@ -84,9 +98,11 @@ void glouton(int**& matrix, int*& res, int length) {
         nbUnvisitedCities -= 1;
         currentCity = nearestUnvisitedCity;
     }
-    totalDist += distanceMatrix[0][res[length-1]];
+    totalDist += getDistanceBetweenIAndJ(distanceMatrix, 0, res[length-1]);
 
     res[length] = res[0];
+
+    totalDist += getDistanceBetweenIAndJ(distanceMatrix, res[length-1],res[length]);
 
     // Desallocate array
     delete visitedCites;
@@ -102,15 +118,14 @@ void glouton(int**& matrix, int*& res, int length) {
 int tsp(int**& distanceMatrix, int**& memo, int currentCity, int length, int mask){
     // If mask is equal 2^length, so S is empty
     // Hovewer, if S is empty, then all cities have been visited. 
-    if (mask == (1<<length)-1){ 
-        return distanceMatrix[currentCity][0];
+    if (mask == (1<<length)-1){
+        return getDistanceBetweenIAndJ(distanceMatrix, 0, currentCity);
     }
 
     // If value has already is calculate by TSP, value is return
     if (memo[currentCity][mask] != -1){
         return memo[currentCity][mask];
     }
-    
     int distance = INF;
     for (int nextCity=0; nextCity<length; nextCity++){
         // If nextCity has already visited, we passed to nextCity (because nextCity is not in S)
@@ -118,7 +133,7 @@ int tsp(int**& distanceMatrix, int**& memo, int currentCity, int length, int mas
             continue;
         }
         // Else we calculate tsp value
-        distance = min(distance, distanceMatrix[currentCity][nextCity] + tsp(distanceMatrix, memo, nextCity,length, mask|(1<<nextCity)));
+        distance = min(distance,getDistanceBetweenIAndJ(distanceMatrix, currentCity, nextCity) + tsp(distanceMatrix, memo, nextCity,length, mask|(1<<nextCity)));
     }
     memo[currentCity][mask] = distance;
     return distance;
@@ -134,7 +149,7 @@ void getTspPath(int**& distanceMatrix, int**& memo, int length, int*& path, int 
 
     for (int i = 0; i < length; i++) {
         if ((mask & (1 << i)) == 0) {
-            int next_dist = distanceMatrix[pos][i] + tsp(distanceMatrix, memo, i, length, mask | (1 << i));
+            int next_dist = getDistanceBetweenIAndJ(distanceMatrix, pos, i) + tsp(distanceMatrix, memo, i, length, mask | (1 << i));
             if (next_dist == memo[pos][mask]) {
                 path[length-len-1] = i;
                 getTspPath(distanceMatrix, memo, length, path, mask | (1 << i), i, len + 1);
@@ -148,7 +163,8 @@ void progdyn(int**& matrix, int*& res, int length) {
     // Calcul and intialize matrix distance
     int** distanceMatrix = new int*[length];
     for (int i=0; i<length; i++){
-        distanceMatrix[i] = new int[length];
+        // distanceMatrix[i] = new int[length-i];
+        distanceMatrix[i] = new int[length-i];
     }
     initializeDistancMatrix(matrix, distanceMatrix, length);
 
@@ -162,7 +178,7 @@ void progdyn(int**& matrix, int*& res, int length) {
     }
 
     // Select an arbitrary city
-    int firstCity = initialCity();
+    int firstCity = 0;
     res[0] = firstCity;
     res[length] = firstCity;
 
@@ -181,8 +197,7 @@ void progdyn(int**& matrix, int*& res, int length) {
 
 }
 
-
-/* || Methods for dynamic programmation || */
+/* || Methods for approximation || */
 // Implementation of Prim Algorith
 void prim(int**& distanceMatirx, int length, vector<pair<int,int>>& T ){
     // Intialize neighboor and distMin array
@@ -210,8 +225,8 @@ void prim(int**& distanceMatirx, int length, vector<pair<int,int>>& T ){
         T.push_back(valueAndNeighboor);
         distMin[k] = -1;
         for (int j=0; j<length; j++){
-            if (distanceMatirx[k][j] < distMin[j]){
-                distMin[j] = distanceMatirx[k][j];
+            if (getDistanceBetweenIAndJ(distanceMatirx, k, j) < distMin[j]){
+                distMin[j] = getDistanceBetweenIAndJ(distanceMatirx, k,j);
                 neighboor[j] = k;
             }
         }
@@ -223,7 +238,7 @@ void prim(int**& distanceMatirx, int length, vector<pair<int,int>>& T ){
 }
 
 // Get TSP path using preorder traversal of Prim's tree
-void preorderTraversal(int u, vector<pair<int, int>>& T, bool*& visited, int*& res, int& index) {
+void preorderTraversal(int u, vector<pair<int, int>>& T, bool*& visited, int*& res, int index) {
     visited[u] = true;
     res[index++] = u;
 
@@ -240,7 +255,7 @@ void approx(int**& matrix, int*& res, int length) {
     // Calcul and intialize matrix distance
     int** distanceMatrix = new int*[length];
     for (int i=0; i<length; i++){
-        distanceMatrix[i] = new int[length];
+        distanceMatrix[i] = new int[length-i];
     }
     initializeDistancMatrix(matrix, distanceMatrix, length);
 
@@ -249,7 +264,7 @@ void approx(int**& matrix, int*& res, int length) {
     visitedCites[0] = true;
 
     // Select an arbitrary city
-    int firstCity = initialCity();
+    int firstCity = initialCity(length);
 
     // Tree
     vector<pair<int,int>> tree;
@@ -257,17 +272,39 @@ void approx(int**& matrix, int*& res, int length) {
 
     // Fill res with path obtained by preorder traversal of Prim's tree
     int index = 0;
-    res[0] = firstCity;
     preorderTraversal(firstCity, tree, visitedCites, res, index);
-    res[length] = firstCity;
     
     // Desallocate arrays
     for (int i=0; i<length; i++){
         delete distanceMatrix[i];
     }
-    delete distanceMatrix;res[length] = firstCity;
+    delete distanceMatrix;
 }
 
+/* || Print path methods || */
+int positiveModulo(int a, int b){
+    return ((a  % b + b) % b);
+}
+
+void printPath(int*& res, int length){
+    bool finded = false;
+    int indix = 0;
+
+    while (res[indix] != 0){
+        indix += 1;
+    }
+
+    std::cout << 0 << "\n";
+    if (res[indix+1] < res[positiveModulo(indix-1, length)]){
+        for (int i=0; i<length; i++){
+            std::cout << res[positiveModulo(indix+1+i, length)] << "\n";
+        }
+    } else {
+        for (int i=0; i<length; i++){
+            std::cout << res[positiveModulo(indix-1-i, length)] << "\n";
+        }
+    }
+}
 
 void run(Algo algo, int**& matrix, int*& res, int length, bool print_res, bool print_time) {
     using namespace chrono;
@@ -280,9 +317,7 @@ void run(Algo algo, int**& matrix, int*& res, int length, bool print_res, bool p
         std::cout << std::fixed << s.count() << std::endl;
     }
     if (print_res) {
-        for (int i=0; i <= length; i++){
-            std::cout << res[i] << "\n";    
-        }
+        printPath(res, length);
     }
 }
 
@@ -349,6 +384,5 @@ int main(int argc, char *argv[]) {
         delete res;
     }
 
-    
     return 0;
 }

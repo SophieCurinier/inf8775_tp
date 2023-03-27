@@ -34,7 +34,7 @@ void initializeDistancMatrix(vector<vector<int>>& matrix, vector<vector<int>>& d
             } else {
                 distanceBetweenIAndJ = euclideanDistance(matrix[i][0],matrix[i][1],matrix[j][0],matrix[j][1]);
                 distanceMatrix[i][j] = distanceBetweenIAndJ;
-                distanceMatrix[j][i] = distanceBetweenIAndJ;
+                distanceMatrix[j][j] = distanceBetweenIAndJ;
             } 
         }   
     }
@@ -42,9 +42,9 @@ void initializeDistancMatrix(vector<vector<int>>& matrix, vector<vector<int>>& d
 
 
 /* || Method for glouton || */
-void glouton(vector<vector<int>>& distanceMatrix, vector<int>& res) {
+void glouton(vector<vector<int>>& matrix, vector<int>& res) {
     int totalDist = 0;
-    int length = distanceMatrix.size();
+    int length = matrix.size();
     // Initialized all city as unvisited
     vector<bool> visitedCites(length);
 
@@ -61,7 +61,7 @@ void glouton(vector<vector<int>>& distanceMatrix, vector<int>& res) {
         nearestUnvisitedCity = -1;
         for (int i=0; i<length; i++){
             if (!visitedCites[i]){
-                int distanceWithI = distanceMatrix[currentCity][i];
+                int distanceWithI = euclideanDistance(matrix[currentCity][0],matrix[currentCity][1],matrix[i][0],matrix[i][1]);;
                 if (nearestUnvisitedCity >= 0){
                     if (distanceWithNearest > distanceWithI){
                         nearestUnvisitedCity = i;
@@ -79,17 +79,17 @@ void glouton(vector<vector<int>>& distanceMatrix, vector<int>& res) {
         nbUnvisitedCities -= 1;
         currentCity = nearestUnvisitedCity;
     }
-    totalDist += distanceMatrix[0][res[length-1]];
+    totalDist += euclideanDistance(matrix[0][0],matrix[0][1],matrix[res[length-1]][0],matrix[res[length-1]][1]);
 
     res[length] = res[0];
 }
 /* || Methods for dynamic programmation || */
 // Method to fill array for dynamic programation using the binary mask to represent the set of cities S
-int tsp(vector<vector<int>>& distanceMatrix, vector<vector<int>>& memo, int currentCity, int length, int mask){
+int tsp(vector<vector<int>>& matrix, vector<vector<int>>& memo, int currentCity, int length, int mask){
     // If mask is equal 2^length, so S is empty
     // Hovewer, if S is empty, then all cities have been visited. 
     if (mask == (1<<length)-1){ 
-        return distanceMatrix[currentCity][0];
+        return euclideanDistance(matrix[currentCity][0],matrix[currentCity][1],matrix[0][0],matrix[0][1]);;
     }
 
     // If value has already is calculate by TSP, value is return
@@ -104,14 +104,14 @@ int tsp(vector<vector<int>>& distanceMatrix, vector<vector<int>>& memo, int curr
             continue;
         }
         // Else we calculate tsp value
-        distance = min(distance, distanceMatrix[currentCity][nextCity] + tsp(distanceMatrix, memo, nextCity,length, mask|(1<<nextCity)));
+        distance = min(distance, euclideanDistance(matrix[currentCity][0],matrix[currentCity][1],matrix[nextCity][0],matrix[nextCity][1]) + tsp(matrix, memo, nextCity,length, mask|(1<<nextCity)));
     }
     memo[currentCity][mask] = distance;
     return distance;
 }
 
 // Get TSP path using array for dynamic programmation
-void getTspPath(vector<vector<int>>& distanceMatrix, vector<vector<int>>& memo, int length, vector<int>& path, int mask, int pos, int len) {
+void getTspPath(vector<vector<int>>& matrix, vector<vector<int>>& memo, int length, vector<int>& path, int mask, int pos, int len) {
     // If S is empty
     if (mask == (1 << length) - 1) {
         path[length-1-len] = 0;
@@ -120,18 +120,18 @@ void getTspPath(vector<vector<int>>& distanceMatrix, vector<vector<int>>& memo, 
 
     for (int i = 0; i < length; i++) {
         if ((mask & (1 << i)) == 0) {
-            int next_dist = distanceMatrix[pos][i] + tsp(distanceMatrix, memo, i, length, mask | (1 << i));
+            int next_dist = euclideanDistance(matrix[pos][0],matrix[pos][1],matrix[i][0],matrix[i][1]) + tsp(matrix, memo, i, length, mask | (1 << i));
             if (next_dist == memo[pos][mask]) {
                 path[length-len-1] = i;
-                getTspPath(distanceMatrix, memo, length, path, mask | (1 << i), i, len + 1);
+                getTspPath(matrix, memo, length, path, mask | (1 << i), i, len + 1);
                 break;
             }
         }
     }
 }
 
-void progdyn(vector<vector<int>>& distanceMatrix, vector<int>& res) {
-    int length = distanceMatrix.size();
+void progdyn(vector<vector<int>>& matrix, vector<int>& res) {
+    int length = matrix.size();
     // Initialize memo array
     vector<vector<int>> memo(length,vector<int>(1<<length,-1));
 
@@ -140,24 +140,24 @@ void progdyn(vector<vector<int>>& distanceMatrix, vector<int>& res) {
     res[0] = firstCity;
     res[length] = firstCity;
 
-    int distanceTotal = tsp(distanceMatrix, memo, firstCity, length, 1);
+    int distanceTotal = tsp(matrix, memo, firstCity, length, 1);
 
     // Fill res with path
-    getTspPath(distanceMatrix, memo, length, res, 1, 0, 0);
+    getTspPath(matrix, memo, length, res, 1, 0, 0);
 
 }
 
 
 /* || Methods for dynamic programmation || */
 // Implementation of Prim Algorith
-void prim(vector<vector<int>>& distanceMatirx, vector<pair<int,int>>& T ){
-    int length = distanceMatirx.size();
+void prim(vector<vector<int>>& matrix, vector<pair<int,int>>& T ){
+    int length =  matrix.size();
     // Intialize neighboor and distMin array
     vector<int> neighboor(length);
     vector<int> distMin(length);
     for (int i=1; i<length; i++){
         neighboor[i] = 0;
-        distMin[i] = distanceMatirx[0][i];
+        distMin[i] =euclideanDistance(matrix[i][0],matrix[i][1],matrix[0][0],matrix[0][1]);;
     }
     int k = 0;
 
@@ -177,8 +177,9 @@ void prim(vector<vector<int>>& distanceMatirx, vector<pair<int,int>>& T ){
         T.push_back(valueAndNeighboor);
         distMin[k] = -1;
         for (int j=1; j<length; j++){
-            if (distanceMatirx[k][j] < distMin[j]){
-                distMin[j] = distanceMatirx[k][j];
+            int distanceBetweenKAndJ = euclideanDistance(matrix[k][0],matrix[k][1],matrix[j][0],matrix[j][1]);
+            if (distanceBetweenKAndJ < distMin[j]){
+                distMin[j] = distanceBetweenKAndJ;
                 neighboor[j] = k;
             }
         }
@@ -199,8 +200,8 @@ void preorderTraversal(int u, vector<pair<int, int>>& T, vector<bool>& visited, 
 }
 
 // Using Prim Algo
-void approx(vector<vector<int>>& distanceMatrix, vector<int>& res) {
-    int length = distanceMatrix.size();
+void approx(vector<vector<int>>& matrix, vector<int>& res) {
+    int length = matrix.size();
     // Initialize citiesvisited array
     vector<bool> visitedCites(length,false);
     visitedCites[0] = true;
@@ -210,7 +211,7 @@ void approx(vector<vector<int>>& distanceMatrix, vector<int>& res) {
 
     // Tree
     vector<pair<int,int>> tree;
-    prim(distanceMatrix, tree);
+    prim(matrix, tree);
 
     // Fill res with path obtained by preorder traversal of Prim's tree
     int index = 0;
@@ -298,18 +299,18 @@ int main(int argc, char *argv[]) {
         }
     }
 
-    vector<vector<int>> distanceMatrix(length, vector<int>(length));
-    initializeDistancMatrix(ex, distanceMatrix);
+    // vector<vector<int>> distanceMatrix(length, vector<int>(length));
+    // initializeDistancMatrix(ex, distanceMatrix);
     // resultPath
     vector<int> res(length+1);
 
     // Call correct algorithm
     if (prog_args.algo == "glouton") {
-        run(glouton, distanceMatrix, res, prog_args.print_res, prog_args.print_time);
+        run(glouton, ex, res, prog_args.print_res, prog_args.print_time);
     } else if(prog_args.algo == "progdyn") {
-        run(progdyn, distanceMatrix, res, prog_args.print_res, prog_args.print_time);
+        run(progdyn, ex, res, prog_args.print_res, prog_args.print_time);
     } else if(prog_args.algo == "approx") {
-        run(approx, distanceMatrix, res, prog_args.print_res, prog_args.print_time);
+        run(approx, ex, res, prog_args.print_res, prog_args.print_time);
     }
     
     return 0;
