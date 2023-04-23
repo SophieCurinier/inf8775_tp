@@ -182,7 +182,7 @@ int findNextEnclosure(int**& res, int x, vector<bool>& isPlaced, unsigned int*& 
 }
 
 void glouton(int*& subSet, int**& res, unsigned int*& enclosureSize, int numberOfEnclosure, int numberOfSubset, int**& weightedMatrix, int maxDistanceSubset){
-    vector<int> isPlaced ;
+    vector<int> isPlaced(numberOfEnclosure,-1) ;
     vector<float> sumWeight = vector<float>(numberOfEnclosure,0);
     int distanceInSubset = 0;
     bool isInSubset = false;
@@ -193,17 +193,99 @@ void glouton(int*& subSet, int**& res, unsigned int*& enclosureSize, int numberO
         }
     }
 
+    for (int i=0; i<numberOfSubset; i++){
+        isPlaced[subSet[i]] = -2;
+    }
+
     vector<int> sortedEnclosure = vector<int>(numberOfEnclosure);
     for (int i=0; i<numberOfEnclosure; i++){
         sortedEnclosure[i] = i;
     }
     sort(sortedEnclosure.begin(), sortedEnclosure.end(),
          [&sumWeight](int a, int b) { return sumWeight[a] > sumWeight[b]; });
-    int x = 0;
+    int xLeft = -1;
+    int xRight = 0;
+
+    bool isInitial = true;
+    int costLeft = 0;
+    int costRight = 0;
+
+    int xLeftSub ;
+    int xRightSub;
+    int restedSubXToPlace = numberOfSubset;
+    unsigned int isReservedPlace = 0;
+    int beginningReserdPlace ;
+    bool verifySubsetPlacingIsPossible = (maxDistanceSubset >= numberOfSubset);
+    int y;
+    
     //Placer les rectangles un par un en choisissant la position optimale
     for (int i : sortedEnclosure) {
-        placeRectangle(i,res,enclosureSize[i],x,0);
-        x += 1;
+        if (isInitial){
+            placeRectangle(i,res,enclosureSize[i],xRight,-(xRight%2 != 0)*(enclosureSize[i]-1));
+            isInitial = false;
+            if ((isPlaced[i] == -2) && verifySubsetPlacingIsPossible){
+                restedSubXToPlace -= 1;
+                xLeftSub = xRight;
+                xRightSub = xRight;
+            }
+            isPlaced[i] = xRight;
+            xRight += 1;
+        } else {
+            costLeft = 0;
+            costRight = 0;
+            for (int j=0; j<numberOfEnclosure; j++){
+                if (isPlaced[j] > -1){
+                    costLeft += abs(xLeft - isPlaced[j])*(weightedMatrix[i][j]+weightedMatrix[j][i]);
+                    costRight += abs(xRight - isPlaced[j])*(weightedMatrix[i][j]+weightedMatrix[j][i]);
+                }
+            }
+            //if ((isPlaced[i] == -2) && verifySubsetPlacingIsPossible){
+            if ((isPlaced[i] == -2) && verifySubsetPlacingIsPossible){
+                if (isReservedPlace == 0){
+                    bool watchAtLeft = abs(xLeft - xRightSub)+restedSubXToPlace <= maxDistanceSubset;
+                    bool watchAtRight = abs(xLeftSub - xRight)+restedSubXToPlace <= maxDistanceSubset;
+                    if (((watchAtLeft && watchAtRight) && (costLeft < costRight)) || (watchAtLeft && !watchAtRight)){
+                        isPlaced[i] = xLeft;
+                        placeRectangle(i, res, enclosureSize[i], xLeft, -(xLeft%2 != 0)*(enclosureSize[i]-1));
+                        xLeft -= 1;
+                        xLeftSub -= 1;
+                    } else if (((watchAtLeft && watchAtRight) && (costLeft >= costRight)) || (!watchAtLeft && watchAtRight)) {
+                        isPlaced[i] = xRight;
+                        placeRectangle(i, res, enclosureSize[i], xRight, (xRight%2 != 0)*(enclosureSize[i]-1));
+                        xRight += 1;
+                        xRightSub += 1;
+                    }
+                } else {
+                   placeRectangle(i, res, enclosureSize[i], xRightSub, -(xRightSub%2 != 0)*(enclosureSize[i]-1)); 
+                   xRightSub += 1;
+                }
+                restedSubXToPlace -= 1;
+                
+            } else {
+                if (((abs(xLeftSub - xRightSub) + restedSubXToPlace) == maxDistanceSubset) && (isReservedPlace == 0))  {
+                costLeft = 0;
+                costRight = 0;
+                xRight += restedSubXToPlace;
+                isReservedPlace = restedSubXToPlace;
+                for (int j=0; j<numberOfEnclosure; j++){
+                    if (isPlaced[j] > -1){
+                        costLeft += abs(xLeft - isPlaced[j])*(weightedMatrix[i][j]+weightedMatrix[j][i]);
+                        costRight += abs(xRight - isPlaced[j])*(weightedMatrix[i][j]+weightedMatrix[j][i]);
+                    }
+                }
+
+                }
+                if (costLeft < costRight){
+                    isPlaced[i] = xLeft;
+                    placeRectangle(i, res, enclosureSize[i], xLeft, -(xLeft%2 != 0)*(enclosureSize[i]-1));
+                    xLeft -= 1;
+                } else {
+                    isPlaced[i] = xRight;
+                    placeRectangle(i, res, enclosureSize[i], xRight, -(xRight%2 != 0)*(enclosureSize[i]-1));
+                    xRight += 1;
+                } 
+            }
+        }
     }
     
 }
@@ -401,11 +483,12 @@ void algo(int**& weightedMatrix, int*& subSet, int**& res,  unsigned int*& enclo
     std::cout << cost << std::endl;
     if (printP){
         printEnclosure(res,enclosureSize,numberOfEnclosure);
+        printPlan(res, enclosureSize, numberOfEnclosure);
     }
     
     // Algorithme tabou
-    int maxIteration = 1000000;
-    tabouSearch(weightedMatrix,subSet,res,enclosureSize,numberOfEnclosure,numberOfSubset,maxDistanceSubSet,10,50,maxIteration,printP);
+    int maxIteration = 100000;
+    tabouSearch(weightedMatrix,subSet,res,enclosureSize,numberOfEnclosure,numberOfSubset,maxDistanceSubSet,50,10,maxIteration,printP);
     
     /* == A enlever ==*/
     printPlan(res, enclosureSize, numberOfEnclosure);
