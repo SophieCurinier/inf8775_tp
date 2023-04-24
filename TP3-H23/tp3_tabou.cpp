@@ -118,10 +118,10 @@ void run(Algo algo, int**& weightedMatrix, int*& subSet, int**& res,  unsigned i
 
 /* || Calculation of cost ||*/
 // General cost
-int calculateCost(int**& res, unsigned int*& enclosureSize, int**& weightedMatrix, int numberOfEnclosure, int numberOfSubset, int*& subSet, int maxDistanceSubSet){
-    int cost = 0 ;
+long int calculateCost(int**& res, unsigned int*& enclosureSize, int**& weightedMatrix, int numberOfEnclosure, int numberOfSubset, int*& subSet, int maxDistanceSubSet){
+    long int cost = 0 ;
     int distance;
-    bool respectSubsetConstrain = true;
+    bool unRespectSubsetConstrain = true;
     for (int u=0; u<numberOfEnclosure; u++){
         // For each other enclosure find most nearest enclosure
         for (int v=0; v<numberOfEnclosure; v++){
@@ -136,14 +136,15 @@ int calculateCost(int**& res, unsigned int*& enclosureSize, int**& weightedMatri
         for (int v=0; v<numberOfSubset; v++){
             if (u != v){
                 distance = getNearestDistance(res,enclosureSize,subSet[u],subSet[v]);
-                if ((distance < maxDistanceSubSet) && respectSubsetConstrain){
-                    respectSubsetConstrain = false;
+                if (distance > maxDistanceSubSet){
+                    unRespectSubsetConstrain = true;
+                    break;
                 }
             }
         }
     }
 
-    if (respectSubsetConstrain){
+    if (!unRespectSubsetConstrain){
         cost += numberOfSubset*numberOfSubset;
     }
     return cost;
@@ -181,16 +182,40 @@ int findNextEnclosure(int**& res, int x, vector<bool>& isPlaced, unsigned int*& 
     return bestRectIndex;
 }
 
+void verifyIsOkay(int**& res, unsigned int*& enclosureSize, int numberOfEnclosure){
+    bool isOnTheSame = false;
+    for (int i=0; i<numberOfEnclosure; i++){
+        for (int j=0; j<enclosureSize[i]; j++){
+            for (int p=0; p<numberOfEnclosure; p++){
+                for (int k=0; k<enclosureSize[p]; k++){
+                    if (i != p){
+                        if ((res[i][2*j] == res[p][2*k]) && (res[i][2*j+1] == res[p][2*k+1])){
+                            isOnTheSame = true;
+                            std::cout << "break" << std::endl;
+                        }
+                    }
+                }
+            }
+        }
+    }
+    std::cout << "Is " << isOnTheSame << std::endl;
+}
+
 void glouton(int*& subSet, int**& res, unsigned int*& enclosureSize, int numberOfEnclosure, int numberOfSubset, int**& weightedMatrix, int maxDistanceSubset){
-    vector<int> isPlaced ;
+    vector<int> isPlaced(numberOfEnclosure,-1) ;
     vector<float> sumWeight = vector<float>(numberOfEnclosure,0);
     int distanceInSubset = 0;
     bool isInSubset = false;
 
     for (int i=0; i<numberOfEnclosure; i++){
         for (int j=0; j<numberOfEnclosure; j++){
-            sumWeight[i] += weightedMatrix[i][j];
+            sumWeight[i] += pow(weightedMatrix[i][j],2);
         }
+    }
+
+
+    for (int i=0; i<numberOfSubset; i++){
+        isPlaced[subSet[i]] = -2;
     }
 
     vector<int> sortedEnclosure = vector<int>(numberOfEnclosure);
@@ -199,50 +224,95 @@ void glouton(int*& subSet, int**& res, unsigned int*& enclosureSize, int numberO
     }
     sort(sortedEnclosure.begin(), sortedEnclosure.end(),
          [&sumWeight](int a, int b) { return sumWeight[a] > sumWeight[b]; });
-    int x = 0;
+    int xLeft = -1;
+    int xRight = 0;
+
+    bool isInitial = true;
+    int costLeft = 0;
+    int costRight = 0;
+
+    int xLeftSub ;
+    int xRightSub;
+    int restedSubXToPlace = numberOfSubset;
+    unsigned int isReservedPlace = 0;
+    int beginningReserdPlace ;
+    bool verifySubsetPlacingIsPossible = (maxDistanceSubset > numberOfSubset);
+    int y;
+    
     //Placer les rectangles un par un en choisissant la position optimale
     for (int i : sortedEnclosure) {
-        placeRectangle(i,res,enclosureSize[i],x,0);
-        x += 1;
+        if (isInitial){
+            placeRectangle(i,res,enclosureSize[i],xRight,-(xRight%2 != 0)*(enclosureSize[i]-1));
+            isInitial = false;
+            if ((isPlaced[i] == -2) && verifySubsetPlacingIsPossible){
+                restedSubXToPlace -= 1;
+                xLeftSub = xRight;
+                xRightSub = xRight;
+            }
+            isPlaced[i] = xRight;
+            xRight += 1;
+        } else {
+            costLeft = 0;
+            costRight = 0;
+            for (int j=0; j<numberOfEnclosure; j++){
+                if (isPlaced[j] > -1){
+                    costLeft += abs(xLeft - isPlaced[j])*(weightedMatrix[i][j]+weightedMatrix[j][i]);
+                    costRight += abs(xRight - isPlaced[j])*(weightedMatrix[i][j]+weightedMatrix[j][i]);
+                }
+            }
+            //if ((isPlaced[i] == -2) && verifySubsetPlacingIsPossible){
+            if ((isPlaced[i] == -2) && verifySubsetPlacingIsPossible){
+                if (isReservedPlace == 0){
+                    bool watchAtLeft = abs(xLeft - xRightSub)+restedSubXToPlace <= maxDistanceSubset;
+                    bool watchAtRight = abs(xLeftSub - xRight)+restedSubXToPlace <= maxDistanceSubset;
+                    if (((watchAtLeft && watchAtRight) && (costLeft < costRight)) || (watchAtLeft && !watchAtRight)){
+                        isPlaced[i] = xLeft;
+                        placeRectangle(i, res, enclosureSize[i], xLeft, -(xLeft%2 != 0)*(enclosureSize[i]-1));
+                        xLeft -= 1;
+                        xLeftSub -= 1;
+                    } else if (((watchAtLeft && watchAtRight) && (costLeft >= costRight)) || (!watchAtLeft && watchAtRight)) {
+                        isPlaced[i] = xRight;
+                        placeRectangle(i, res, enclosureSize[i], xRight, (xRight%2 != 0)*(enclosureSize[i]-1));
+                        xRight += 1;
+                        xRightSub += 1;
+                    }
+                } else {
+                   placeRectangle(i, res, enclosureSize[i], xRightSub, -(xRightSub%2 != 0)*(enclosureSize[i]-1)); 
+                   xRightSub += 1;
+                }
+                restedSubXToPlace -= 1;
+                
+            } else {
+                if (((abs(xLeftSub - xRightSub) + restedSubXToPlace) == maxDistanceSubset) && (isReservedPlace == 0))  {
+                costLeft = 0;
+                costRight = 0;
+                xRight += restedSubXToPlace;
+                isReservedPlace = restedSubXToPlace;
+                for (int j=0; j<numberOfEnclosure; j++){
+                    if (isPlaced[j] > -1){
+                        costLeft += abs(xLeft - isPlaced[j])*(weightedMatrix[i][j]+weightedMatrix[j][i]);
+                        costRight += abs(xRight - isPlaced[j])*(weightedMatrix[i][j]+weightedMatrix[j][i]);
+                    }
+                }
+
+                }
+                if (costLeft < costRight){
+                    isPlaced[i] = xLeft;
+                    placeRectangle(i, res, enclosureSize[i], xLeft, -(xLeft%2 != 0)*(enclosureSize[i]-1));
+                    xLeft -= 1;
+                } else {
+                    isPlaced[i] = xRight;
+                    placeRectangle(i, res, enclosureSize[i], xRight, -(xRight%2 != 0)*(enclosureSize[i]-1));
+                    xRight += 1;
+                } 
+            }
+        }
     }
     
 }
 
-void initialization(int*& subSet, int**& res,  unsigned int*& enclosureSize, int numberOfEnclosure, int numberOfSubset){
-    // 1 : Placer les rectangles du SubSet les uns a coté des autres avec un cube de cote en commun, alternant un vers le haut, un vers le bas
-    int x = 0;
-    int y = 0;
-    vector<bool> isPlaced = vector<bool>(numberOfEnclosure, false);
-    for (int i=0; i<numberOfSubset; i++)
-    {
-        int enclosure = subSet[i];
-        if (x%2 == 0){
-            y = 0;
-        } else {
-            y = -enclosureSize[enclosure]+1;
-        }
-        placeRectangle(enclosure, res, enclosureSize[enclosure], x, y);
-        isPlaced[enclosure] = true; 
-        x += 1;
-    }
-
-    for (int i=0; i<numberOfEnclosure; i++)
-    {
-        int enclosure = i;
-        if (!isPlaced[enclosure]){
-            if (x%2 == 0){
-                y = 0;
-            } else {
-                y = -enclosureSize[enclosure]+1;
-            }
-            placeRectangle(enclosure, res, enclosureSize[enclosure], x, y);
-            x += 1;
-        }
-    }
-}
-
-int calculateCostNeighbor(int**& weightedMatrix, int*& subSet, vector<pair<int,int>>& solution, int numberOfEnclosure, int numberOfSubset, int maxDistanceSubSet, unsigned int*& enclosureSize){
-    int cost = 0 ;
+long int calculateCostNeighbor(int**& weightedMatrix, int*& subSet, vector<pair<int,int>>& solution, int numberOfEnclosure, int numberOfSubset, int maxDistanceSubSet, unsigned int*& enclosureSize){
+    long int cost = 0 ;
     int distance;
     bool respectSubsetConstrain = true;
     for (int u=0; u<numberOfEnclosure; u++){
@@ -259,8 +329,9 @@ int calculateCostNeighbor(int**& weightedMatrix, int*& subSet, vector<pair<int,i
         for (int v=0; v<numberOfSubset; v++){
             if (u != v){
                 distance = getNearestDistanceSolution(enclosureSize,u,v,solution[subSet[u]].first,solution[subSet[u]].second,solution[subSet[v]].first,solution[subSet[v]].second);
-                if ((distance < maxDistanceSubSet) && respectSubsetConstrain){
+                if (distance < maxDistanceSubSet){
                     respectSubsetConstrain = false;
+                    break;
                 }
             }
         }
@@ -276,13 +347,13 @@ bool isPossible(int enclosure, vector<pair<int,int>> solution, int numberOfEnclo
     bool isPossibleVar = true;
     for (int otherEnclosure = 0; otherEnclosure<numberOfEnclosure; otherEnclosure++){
         if (otherEnclosure != enclosure){
-            bool isXAlign = (solution[otherEnclosure].first == newX);
+            bool isXAlign = (solution[otherEnclosure].first == newX); //If other enclosure and enclosure are on same column
             if (isXAlign){
-                if ((newY <= solution[otherEnclosure].second + enclosureSize[otherEnclosure]) && (solution[otherEnclosure].second < newY + 1)){
+                if ((solution[otherEnclosure].second + (int)enclosureSize[otherEnclosure] >= newY) && (solution[otherEnclosure].second <= newY)){
                     isPossibleVar = false;
                     break;  // Sort de la boucle car on a trouvé une collision
                 }
-                else if ((solution[otherEnclosure].second <= newY + enclosureSize[enclosure]) && (newY < newY + 1)){
+                else if ((newY + (int)enclosureSize[enclosure] >= solution[otherEnclosure].second) && (newY <= solution[otherEnclosure].second)){
                     isPossibleVar = false;
                     break;  // Sort de la boucle car on a trouvé une collision
                 }
@@ -293,122 +364,196 @@ bool isPossible(int enclosure, vector<pair<int,int>> solution, int numberOfEnclo
     return isPossibleVar;
 }
 
-void findNeighborhood(int enclosure, vector<pair<int,int>>& solution, int numberOfEnclosure, vector<vector<pair<int,int>>>&  neighborList, int maxDistance, unsigned int*& enclosureSize){
-    for (int x=-maxDistance; x<maxDistance; x++){
-        for (int y=-maxDistance; y<maxDistance; y++){
-            bool isPossibleVar = isPossible(enclosure, solution, numberOfEnclosure, enclosureSize, solution[enclosure].first+x, solution[enclosure].second+y);
-            if ((isPossibleVar) && (abs(x)+abs(y) <= maxDistance)){
-                vector<pair<int,int>> neighbor = solution;
-                neighbor[enclosure] = pair<int,int>(solution[enclosure].first+x, solution[enclosure].second+y);
-                neighborList.push_back(neighbor);
+void clustering(int**& res, vector<int>& tabouCluster, int**& weightedMatrix, unsigned int*& enclosureSize, int numberOfEnclosure, vector<int>& enclosureInCluster){
+    int minX = INF;
+    int maxX = -INF;
+
+    for (int i=0; i<numberOfEnclosure; i++){
+        if (res[i][0] < minX){
+            minX = res[i][0];
+        }
+        if (res[i][0] > maxX){
+            maxX = res[i][0];
+        }
+    }
+
+    int numberOfCluster = numberOfEnclosure/10;
+
+    vector<long int> costInCluster(numberOfCluster);
+
+    for (int i=0; i<numberOfEnclosure; i++){
+        for (int j=i; j<numberOfEnclosure; j++){
+            if (i != j){
+                for (int k=0; k<numberOfCluster; k++){
+                    if ((res[i][0] >= minX + k*abs(maxX-minX)/numberOfCluster) && (res[i][0] < minX + (k+1)*abs(maxX-minX)/numberOfCluster)){
+                        costInCluster[k] -= getNearestDistance(res, enclosureSize, i, j)*(weightedMatrix[i][j]+weightedMatrix[j][i]);
+                    }
+                }
+            }
+        }
+    }
+
+    long int minInCluster = INF;
+    int intrestingCluster ;
+
+    for (int k=0; k<numberOfCluster; k++){
+        if ((costInCluster[k] < minInCluster) && (tabouCluster[k] == -1)){
+            minInCluster = costInCluster[k];
+            intrestingCluster = k;
+        } 
+    }
+
+    enclosureInCluster.clear();
+    for (int i=0; i<numberOfEnclosure; i++){
+        if ((res[i][0] >= minX + intrestingCluster*abs(maxX-minX)/numberOfCluster) && (res[i][0] < minX + (intrestingCluster+1)*abs(maxX-minX)/numberOfCluster)){
+            enclosureInCluster.push_back(i);
+        }
+    }
+    
+    for (int k=0; k<numberOfCluster; k++){
+        if (k == intrestingCluster){
+            tabouCluster[k] = 0;
+        } else {
+            if (tabouCluster[k] > -1){
+                tabouCluster[k] += 1;
+                if (tabouCluster[k] == (int)(numberOfCluster/4)){
+                    tabouCluster[k] = -1;
+                }
             }
         }
     }
 }
 
-void tabouSearch(int**& weightedMatrix, int*& subSet, int**& res,  unsigned int*& enclosureSize, int numberOfEnclosure, int numberOfSubset, int maxDistanceSubSet, int maxDistance, int tabouTenure, int maxIteration, bool printP){
+void findNeighborhood(int**& res, vector<pair<int,int>>& currentSolution, int numberOfEnclosure, vector<vector<pair<int,int>>>&  neighborList, int maxDistance, unsigned int*& enclosureSize, int**& weightedMatrix){
+        vector<int> enclosureInCluster ;
+        vector<int> tabouCluster(100, -1);
+        clustering(res, tabouCluster, weightedMatrix, enclosureSize, numberOfEnclosure, enclosureInCluster);
+
+        for (int enclosure : enclosureInCluster){
+        for (int x=-maxDistance; x<maxDistance; x++){
+            for (int y=-maxDistance; y<maxDistance; y++){
+                bool isPossibleVar = isPossible(enclosure, currentSolution, numberOfEnclosure, enclosureSize, currentSolution[enclosure].first+x, currentSolution[enclosure].second+y);
+                if ((isPossibleVar) && (abs(x)+abs(y) <= maxDistance)){
+                    vector<pair<int,int>> neighbor = currentSolution;
+                    neighbor[enclosure] = pair<int,int>(currentSolution[enclosure].first+x, currentSolution[enclosure].second+y);
+                    // Verifier la rangée d'après pour savoir si elle est vide,
+                    if (x != 0){
+                        bool enclosureVerticalIsEmpty = true;
+                        for (int i=0; i<numberOfEnclosure; i++){
+                            if (neighbor[i].first == currentSolution[enclosure].first){
+                                enclosureVerticalIsEmpty = false;
+                                break;
+                            }
+                        }
+                        if (enclosureVerticalIsEmpty){
+                            for (int i=0; i<numberOfEnclosure; i++){
+                                if (neighbor[i].first <= currentSolution[enclosure].first){
+                                    neighbor[i].first += 1;
+                                }
+                            }
+                        }
+                    }
+                    neighborList.push_back(neighbor);
+                }
+            }
+        }
+        }
+}
+
+void tabouSearch(int**& weightedMatrix, int*& subSet, int**& res,  unsigned int*& enclosureSize, int numberOfEnclosure, int numberOfSubset, int maxDistanceSubSet, int maxDistance, int tabouTenure, bool printP){
     vector<vector<pair<int,int>>> tabouList = vector<vector<pair<int,int>>>(1,vector<pair<int,int>>(numberOfEnclosure));
     tabouList.clear();
     
-    vector<pair<int,int>> bestSolution = vector<pair<int,int>>(numberOfEnclosure);
+    vector<pair<int,int>> currentSolution = vector<pair<int,int>>(numberOfEnclosure);
     for (int i=0; i<numberOfEnclosure; i++){
-        bestSolution[i] = pair<int,int>(res[i][0], res[i][1]);
+        currentSolution[i] = pair<int,int>(res[i][0], res[i][1]);
     }
-    int bestScore = calculateCostNeighbor(weightedMatrix,subSet,bestSolution,numberOfEnclosure,numberOfSubset,maxDistanceSubSet,enclosureSize);
+    long int bestScore = calculateCostNeighbor(weightedMatrix,subSet,currentSolution,numberOfEnclosure,numberOfSubset,maxDistanceSubSet,enclosureSize);
 
-    vector<pair<int,int>> bestNeighbor = vector<pair<int,int>>(numberOfEnclosure);
-    bestNeighbor = bestSolution;
-    bool isFind ;
-    int bestNeighborScore ;
-
-    bool isInTabouList;
-    bool isSame;
-
-    int neighborScore;
-    vector<pair<int,int>> neighborSolution;
-    pair<int,int> tabouICoor;
-    vector<pair<int,int>> tabouSolution;
     vector<vector<pair<int,int>>>  neighborList;
 
-    for (int i=0; i<maxIteration; i++){
-        
-        isFind = false;
-        bestNeighborScore = -INF;
+    bool work = true;
 
-        for (int enclosure = 0; enclosure<numberOfEnclosure; enclosure++){
-            findNeighborhood(enclosure,bestNeighbor,numberOfEnclosure,neighborList,maxDistance,enclosureSize);
-            for (int neighbor = 0; neighbor<neighborList.size(); neighbor++){
-                // Find if neighbor is not in tabo list
-                isInTabouList = false;
-                for (int tabou=0; tabou < tabouList.size(); tabou++){
-                    isSame = true;
-                    for (int i=0; i<numberOfEnclosure; i++){
-                        tabouICoor = tabouList[tabou][i];
-                        if ((tabouICoor.first != neighborList[neighbor][i].first) || (tabouICoor.second != neighborList[neighbor][i].second)){
-                            isSame = false;
-                        }
-                    }
-                    if (!isSame){
-                        isInTabouList = true;
+    //Tabou
+    bool isInTabouList = false;
+    bool sameSolution = false;
+
+    int numberOfIterationWithoutChangement = 0;
+    bool newSolutionFind = false;
+
+    while (work && (numberOfIterationWithoutChangement < 20)){
+        // findNeighborhood2(currentSolution, numberOfEnclosure, neighborList, maxDistance, enclosureSize);
+        findNeighborhood(res, currentSolution, numberOfEnclosure, neighborList, maxDistance, enclosureSize, weightedMatrix);
+        newSolutionFind = false;
+        for (int neighbor=0; neighbor<neighborList.size(); neighbor++){
+            // Verify is solution is in tabou list
+            isInTabouList = false;
+            for (int tabou=0; tabou<tabouList.size(); tabou++){
+                sameSolution = true;
+                for (int i=0; i<numberOfEnclosure; i++){
+                    if ((tabouList[tabou][i].first != neighborList[neighbor][i].first) || (tabouList[tabou][i].second != neighborList[neighbor][i].second)){
+                        sameSolution = false;
                     }
                 }
+                if (sameSolution){
+                    isInTabouList = true;
+                }
+            }
 
-                if (!isInTabouList){
-                   neighborSolution = neighborList[neighbor];
-                   neighborScore = calculateCostNeighbor(weightedMatrix,subSet,neighborSolution,numberOfEnclosure,numberOfSubset,maxDistanceSubSet,enclosureSize);
-                   if (neighborScore > bestNeighborScore){
-                        bestNeighbor = neighborSolution;
-                        bestNeighborScore = neighborScore;
-                        isFind = true;
-                   }
+            if (!isInTabouList){
+                long int neighborScore = calculateCostNeighbor(weightedMatrix, subSet, neighborList[neighbor], numberOfEnclosure, numberOfSubset, maxDistance, enclosureSize);
+                if (bestScore < neighborScore){
+                    currentSolution = neighborList[neighbor];
+                    bestScore = neighborScore;
+
+                    for (int enclosure=0; enclosure<numberOfEnclosure; enclosure++){
+                        placeRectangle(enclosure,res,enclosureSize[enclosure],currentSolution[enclosure].first,currentSolution[enclosure].second);
+                    }
+
+                    tabouList.push_back(currentSolution);
+                    if (tabouList.size() > tabouTenure){
+                        tabouList.erase(tabouList.begin());
+                    }
+
+                    std::cout << bestScore << std::endl;
+                    if (printP){
+                        printEnclosure(res, enclosureSize,numberOfEnclosure);
+                        //printPlan(res, enclosureSize, numberOfEnclosure);
+                    }
+                    
+                    newSolutionFind = true;
                 }
             }
         }
-        if (!isFind && tabouList.size()>0){
-            tabouSolution = tabouList[rand()%tabouList.size()];
-            bestNeighbor = tabouSolution;
+
+        if (!newSolutionFind){
+            numberOfIterationWithoutChangement ++;
+            std::cout << "iteration " << numberOfIterationWithoutChangement << std::endl;
+        } else {
+            numberOfIterationWithoutChangement = 0;
         }
-
-        if (bestNeighborScore > bestScore){
-            bestSolution = bestNeighbor;
-            bestScore = bestNeighborScore;
-
-            for (int enclosure=0; enclosure<numberOfEnclosure; enclosure++){
-                placeRectangle(enclosure,res,enclosureSize[enclosure],bestSolution[enclosure].first,bestSolution[enclosure].second);
-            }
-            std::cout << bestScore << std::endl;
-            if (printP){
-                printEnclosure(res, enclosureSize,numberOfEnclosure);
-            }
-        }
-
-        tabouList.push_back(bestNeighbor);
-        if (tabouList.size() > tabouTenure){
-            tabouList.erase(tabouList.begin());
-        }
-
     }
 }
 
+
+
 /* || Algorithme || */
 void algo(int**& weightedMatrix, int*& subSet, int**& res,  unsigned int*& enclosureSize, int numberOfEnclosure, int numberOfSubset, int maxDistanceSubSet, bool printP){
-    int cost;
+    long int cost;
     
     // Initialization with glouton algorithme
-    // initialization(subSet,res,enclosureSize,numberOfEnclosure,numberOfSubset);
     glouton(subSet, res, enclosureSize, numberOfEnclosure, numberOfSubset, weightedMatrix, maxDistanceSubSet);
+    // verifyIsOkay(res,enclosureSize,numberOfEnclosure);
     cost = calculateCost(res,enclosureSize,weightedMatrix,numberOfEnclosure,numberOfSubset, subSet, maxDistanceSubSet);
     std::cout << cost << std::endl;
     if (printP){
         printEnclosure(res,enclosureSize,numberOfEnclosure);
+        printPlan(res, enclosureSize, numberOfEnclosure);
     }
     
     // Algorithme tabou
-    int maxIteration = 1000000;
-    tabouSearch(weightedMatrix,subSet,res,enclosureSize,numberOfEnclosure,numberOfSubset,maxDistanceSubSet,10,50,maxIteration,printP);
+    tabouSearch(weightedMatrix,subSet,res,enclosureSize,numberOfEnclosure,numberOfSubset,maxDistanceSubSet,5,10,printP);
     
-    /* == A enlever ==*/
-    printPlan(res, enclosureSize, numberOfEnclosure);
 }
 
 /* || Main method || */
